@@ -7,5 +7,8 @@ package com.gupaoedu.pattern.lazy;
  */
 public class LazySimpleSingleton {
 
+    public static void main(String[] args){
+        System.out.println("懒汉式");
+    }
 
 }
