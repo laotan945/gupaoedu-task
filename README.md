@@ -1,4 +1,6 @@
 # gupaoedu-task
 沽泡学院课后作业
-1、工厂模式 factory-model
-2、单列模式 single-model
+<br/>
+<a href="https://github.com/laotan945/gupaoedu-task/tree/master/pattern-factory">1、工厂模式 pattern-factory</a>
+<br/>
+<a href="https://github.com/laotan945/gupaoedu-task/tree/master/pattern-singleton">1、单列模式 pattern-singleton</a>
