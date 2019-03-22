@@ -1,5 +1,6 @@
 package com.gupaoedu.pattern.lazy;
 
+
 /**
  * @author tzw
  * @Description: 简单的 懒汉式 Demo
@@ -7,8 +8,16 @@ package com.gupaoedu.pattern.lazy;
  */
 public class LazySimpleSingleton {
 
-    public static void main(String[] args){
-        System.out.println("懒汉式");
+    private LazySimpleSingleton(){}
+
+    private static LazySimpleSingleton  lazySimpleSingleton ;
+
+
+    public static  LazySimpleSingleton getInstance(){
+        if(null==lazySimpleSingleton){
+            return lazySimpleSingleton = new LazySimpleSingleton();
+        }
+        return lazySimpleSingleton;
     }
 
 }
