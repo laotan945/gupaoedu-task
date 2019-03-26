@@ -13,10 +13,10 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>pattern</name>
     <description>设计模式之单例模式</description>
-
     <properties>
         <java.version>1.8</java.version>
     </properties>
+
 
     <dependencies>
         <dependency>
@@ -29,7 +29,11 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+
+
     </dependencies>
+
 
     <build>
         <plugins>
