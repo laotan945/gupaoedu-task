@@ -26,9 +26,9 @@ public class DemoAction {
     @MyRequestMapping("/index")
     public void index(HttpServletRequest request ,
                       HttpServletResponse response,
-                      @MyRequestParam("nameName") String nameName){
+                      @MyRequestParam("name") String userName){
 
-        String result = demoService.selectOne(nameName);
+        String result = demoService.selectOne(userName);
         try {
             // 中文乱码处理
             request.setCharacterEncoding("UTF-8");

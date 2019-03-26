@@ -26,8 +26,8 @@ public class DemoActionV2 {
     @MyRequestMapping("/index")
     public void index(HttpServletRequest request ,
                       HttpServletResponse response,
-                      @MyRequestParam("nameName") String nameName){
-        String result = demoService.selectOne(nameName);
+                      @MyRequestParam("userName") String userName){
+        String result = demoService.selectOne(userName);
         try {
             response.getWriter().write(result);
         } catch (IOException e) {

@@ -327,7 +327,6 @@ public class MyDispatcherServlet extends HttpServlet {
             } else if (parameterType == HttpServletResponse.class) {
                 paramsValues[i] = response;
             } else {
-
                 for (Annotation  annotation : annotations[i]) {
                     if (annotation instanceof MyRequestParam) {
                         String paramName = ((MyRequestParam) annotation).value();
