@@ -359,19 +359,19 @@ public class MyDispatcherServlet extends HttpServlet {
         value = value.replaceAll("\\[|\\]", "").replaceAll("\\s", ",");
         if(type == String.class){
            return String.valueOf(value);
-        }else if(type == Integer.class){
+        }else if(type == Integer.class || type == int.class){
             return Integer.valueOf(value);
-        }else if(type == Double.class){
+        }else if(type == Double.class  || type == double.class){
             return Double.valueOf(value);
-        }else if(type == Boolean.class){
+        }else if(type == Boolean.class || type == boolean.class){
             return Boolean.valueOf(value);
-        }else if(type == Byte.class){
+        }else if(type == Byte.class    || type == byte.class){
             return Byte.valueOf(value);
-        }else if(type == Long.class){
+        }else if(type == Long.class    || type == long.class){
             return Long.valueOf(value);
-        }else if(type == Float.class){
+        }else if(type == Float.class   || type == float.class){
             return Float.valueOf(value);
-        }else if(type == Short.class){
+        }else if(type == Short.class   || type == short.class){
             return Short.valueOf(value);
         }
         return value;

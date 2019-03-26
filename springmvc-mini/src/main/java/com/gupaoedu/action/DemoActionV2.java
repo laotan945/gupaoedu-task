@@ -38,8 +38,8 @@ public class DemoActionV2 {
 
     @MyRequestMapping("/add")
     public void add(HttpServletRequest request, HttpServletResponse response,
-                    @MyRequestParam("a") Integer a,
-                    @MyRequestParam("b") Integer b){
+                    @MyRequestParam("a") double a,
+                    @MyRequestParam("b") double b){
         try {
             response.getWriter().write(a + "+" + b + "=" + (a + b));
         } catch (IOException e) {
