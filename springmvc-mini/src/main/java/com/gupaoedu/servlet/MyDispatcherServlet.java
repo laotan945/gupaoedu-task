@@ -1,9 +1,6 @@
 package com.gupaoedu.servlet;
 
-import com.gupaoedu.annotation.MyAutowired;
-import com.gupaoedu.annotation.MyController;
-import com.gupaoedu.annotation.MyRequestMapping;
-import com.gupaoedu.annotation.MyService;
+import com.gupaoedu.annotation.*;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -13,6 +10,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -24,6 +22,7 @@ import java.util.*;
  * @date 2019-03-25 17:24
  */
 public class MyDispatcherServlet extends HttpServlet {
+
 
     /**
      * 保存 application.properties 配置文件的内容
@@ -56,12 +55,10 @@ public class MyDispatcherServlet extends HttpServlet {
         // TODO 1、 加载配置文件
         String contextConfigLocation = config.getInitParameter("contextConfigLocation");
         doLoadConfig(contextConfigLocation);
-        System.out.println(" 加载配置文件 :" + contextConfigLocation);
 
         // TODO 2、扫描相关类
         String scanPackage = properties.getProperty("scanPackage");
         doScanner(scanPackage);
-        System.out.println(" 扫描相关类 :" + scanPackage);
 
 
         // TODO 3、初始化扫描的类，并且将它们放入到ICO 容器之中
@@ -72,6 +69,7 @@ public class MyDispatcherServlet extends HttpServlet {
 
         // TODO 5、初始化所有HandleMapping
         doHandlerMapping();
+
 
         System.out.println("Spring mvc mini init end");
     }
@@ -97,6 +95,7 @@ public class MyDispatcherServlet extends HttpServlet {
      * 直接从类路径下 找到Spring 主配置文件路径
      * 并且将其读取出来放到  properties 里面
      * 从文件中读取 scanPackage 放到内存中
+     *
      * @param configPath 配置文件路径
      */
     private void doLoadConfig(String configPath) {
@@ -122,7 +121,6 @@ public class MyDispatcherServlet extends HttpServlet {
      */
     private void doScanner(String scanPackage) {
         URL url = this.getClass().getClassLoader().getResource("/" + scanPackage.replaceAll("\\.", "/"));
-        System.out.println(url);
         File classPath = new File(url.getFile());
         for (File file : classPath.listFiles()) {
             if (file.isDirectory()) {
@@ -285,7 +283,6 @@ public class MyDispatcherServlet extends HttpServlet {
                 MyRequestMapping requestMapper = method.getAnnotation(MyRequestMapping.class);
                 String url = baseUrl.concat("/").concat(requestMapper.value()).replaceAll("/+", "/");
                 handleMappers.put(url, method);
-                System.out.println("Mapped : " + url + "，" + method);
             }
         }
     }
@@ -293,6 +290,7 @@ public class MyDispatcherServlet extends HttpServlet {
 
     /**
      * Get、 Post 调用
+     *
      * @param request
      * @param response
      */
@@ -307,12 +305,77 @@ public class MyDispatcherServlet extends HttpServlet {
             return;
         }
         Method method = this.handleMappers.get(url);
-        // 通过反射拿到 method 所在的 class ,拿到class之后还是拿到 class 的名称
+        // TODO 通过反射拿到 method 所在的 class ,拿到class之后还是拿到 class 的名称
         String beanName = toLowerFirstCase(method.getDeclaringClass().getSimpleName());
+
+        // TODO 从request中获取url中的参数名和参数值  例如： key = "name" value = "输入姓名"
         Map<String, String[]> params = request.getParameterMap();
-        method.invoke(ioc.get(beanName), new Object[]{request, response, params.get("name")[0]});
+
+        System.out.println(params.toString());
+
+        // TODO 动态参数赋值
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        Annotation[][] annotations = method.getParameterAnnotations();
+        Object[] paramsValues = new Object[parameterTypes.length];
+
+
+        for (int i = 0; i < parameterTypes.length; i++) {
+
+            Class parameterType = parameterTypes[i];
+            if (parameterType == HttpServletRequest.class) {
+                paramsValues[i] = request;
+            } else if (parameterType == HttpServletResponse.class) {
+                paramsValues[i] = response;
+            } else {
+
+                for (Annotation  annotation : annotations[i]) {
+                    if (annotation instanceof MyRequestParam) {
+                        String paramName = ((MyRequestParam) annotation).value();
+                        if (params.containsKey(paramName)) {
+                            paramsValues[i] = convert(parameterType, Arrays.toString(params.get(paramName)));
+                        }
+                    }
+                }
+
+
+            }
+
+        }
+
+        // 调用方法
+        System.out.println(Arrays.toString(paramsValues));
+        method.invoke(ioc.get(beanName), paramsValues);
     }
 
+
+
+    /**
+     * 准换数据类型
+     * @param type
+     * @param value
+     * @return
+     */
+    private Object convert(Class<?> type, String value){
+        value = value.replaceAll("\\[|\\]", "").replaceAll("\\s", ",");
+        if(type == String.class){
+           return String.valueOf(value);
+        }else if(type == Integer.class){
+            return Integer.valueOf(value);
+        }else if(type == Double.class){
+            return Double.valueOf(value);
+        }else if(type == Boolean.class){
+            return Boolean.valueOf(value);
+        }else if(type == Byte.class){
+            return Byte.valueOf(value);
+        }else if(type == Long.class){
+            return Long.valueOf(value);
+        }else if(type == Float.class){
+            return Float.valueOf(value);
+        }else if(type == Short.class){
+            return Short.valueOf(value);
+        }
+        return value;
+    }
 
 
 }
