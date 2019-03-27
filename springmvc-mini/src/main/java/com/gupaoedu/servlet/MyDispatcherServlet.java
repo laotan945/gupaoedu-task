@@ -1,6 +1,7 @@
 package com.gupaoedu.servlet;
 
 import com.gupaoedu.annotation.*;
+import com.gupaoedu.mapping.HandlerMapping;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -10,11 +11,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * @author tzw
@@ -38,7 +39,7 @@ public class MyDispatcherServlet extends HttpServlet {
     /**
      * 保存 controller 所有方法请求关系容器
      */
-    private static Map<String, Method> handleMappers = new HashMap<>();
+    private static List<HandlerMapping> handlerMappings = new ArrayList<>();
 
 
     /**
@@ -239,21 +240,21 @@ public class MyDispatcherServlet extends HttpServlet {
     }
 
 
-    /**
-     * 判断搜字母是否为小写
-     *
-     * @param beanName
-     * @return
-     */
-    private String isAcronym(String beanName) {
-        char[] arr = beanName.toCharArray();
-        // 小写字符的数值是 'a'=97到 'z'=122
-        // 大写字符的数值是 'A'=65到 ''Z=90
-        if (arr[0] >= 97 && arr[0] <= 122) {
-            return beanName;
-        }
-        return toLowerFirstCase(beanName);
-    }
+//    /**
+//     * 判断搜字母是否为小写
+//     *
+//     * @param beanName
+//     * @return
+//     */
+//    private String isAcronym(String beanName) {
+//        char[] arr = beanName.toCharArray();
+//        // 小写字符的数值是 'a'=97到 'z'=122
+//        // 大写字符的数值是 'A'=65到 ''Z=90
+//        if (arr[0] >= 97 && arr[0] <= 122) {
+//            return beanName;
+//        }
+//        return toLowerFirstCase(beanName);
+//    }
 
 
     /**
@@ -270,19 +271,22 @@ public class MyDispatcherServlet extends HttpServlet {
                 continue;
             }
 
+            // Controller 上的请求地址
             String baseUrl = "";
             if (clazz.isAnnotationPresent(MyRequestMapping.class)) {
                 MyRequestMapping requestMapper = clazz.getAnnotation(MyRequestMapping.class);
                 baseUrl = requestMapper.value();
             }
 
+            // 所有Controller中的带有 @MyRequestMapping注解 方法封装缓存到 handlerMappings 中
             for (Method method : clazz.getMethods()) {
-                if (!method.isAnnotationPresent(MyRequestMapping.class)) {
-                    continue;
+                if (method.isAnnotationPresent(MyRequestMapping.class)) {
+                    MyRequestMapping requestMapper = method.getAnnotation(MyRequestMapping.class);
+
+                    String regex = ("/" + baseUrl + requestMapper.value()).replaceAll("/+", "/");
+                    Pattern pattern = Pattern.compile(regex);
+                    handlerMappings.add(new HandlerMapping(pattern,entry.getValue(),method));
                 }
-                MyRequestMapping requestMapper = method.getAnnotation(MyRequestMapping.class);
-                String url = baseUrl.concat("/").concat(requestMapper.value()).replaceAll("/+", "/");
-                handleMappers.put(url, method);
             }
         }
     }
@@ -290,72 +294,65 @@ public class MyDispatcherServlet extends HttpServlet {
 
     /**
      * Get、 Post 调用
-     *
      * @param request
      * @param response
      */
     private void doDispatcher(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        // 请求绝对路径
-        String url = request.getRequestURI();
-        String contextPath = request.getContextPath().trim();
-        url = url.replaceAll(contextPath, "").replaceAll("/+", "/");
 
-        if (!this.handleMappers.containsKey(url)) {
+
+        HandlerMapping handlerMapping = HandlerMapping.getHandlerMapping(request,handlerMappings);
+        if(handlerMapping == null){
             response.getWriter().write("404 Not Found!!");
             return;
         }
-        Method method = this.handleMappers.get(url);
-        // TODO 通过反射拿到 method 所在的 class ,拿到class之后还是拿到 class 的名称
-        String beanName = toLowerFirstCase(method.getDeclaringClass().getSimpleName());
 
         // TODO 从request中获取url中的参数名和参数值  例如： key = "name" value = "输入姓名"
         Map<String, String[]> params = request.getParameterMap();
 
-        System.out.println(params.toString());
-
-        // TODO 动态参数赋值
-        Class<?>[] parameterTypes = method.getParameterTypes();
-        Annotation[][] annotations = method.getParameterAnnotations();
-        Object[] paramsValues = new Object[parameterTypes.length];
+        // TODO 参数类型和值类型集合
+        Class<?>[] paramTypes = handlerMapping.getMethod().getParameterTypes();
+        Object[]  paramValues = new Object[paramTypes.length];
+        Map<String, Integer> paramIndexMapping = handlerMapping.getParamIndexMapping();
 
 
-        for (int i = 0; i < parameterTypes.length; i++) {
-
-            Class parameterType = parameterTypes[i];
-            if (parameterType == HttpServletRequest.class) {
-                paramsValues[i] = request;
-            } else if (parameterType == HttpServletResponse.class) {
-                paramsValues[i] = response;
-            } else {
-                for (Annotation  annotation : annotations[i]) {
-                    if (annotation instanceof MyRequestParam) {
-                        String paramName = ((MyRequestParam) annotation).value();
-                        if (params.containsKey(paramName)) {
-                            paramsValues[i] = convert(parameterType, Arrays.toString(params.get(paramName)));
-                        }
-                    }
-                }
-
-
+        // 如果找到匹配的对象，则开始填充参数值
+        params.entrySet().forEach(param->{
+            if(paramIndexMapping.containsKey(param.getKey())){
+                int index = paramIndexMapping.get(param.getKey());
+                paramValues[index] = convert(paramTypes[index],param.getValue());
             }
+        });
 
+        // 设置方法中的request和response对象 ,如果方法请求中有参数名 叫 request、response呢 ？？
+        int reqIndex = paramIndexMapping.get(HttpServletRequest.class.getName());
+        paramValues[reqIndex] = request;
+        int respIndex = paramIndexMapping.get(HttpServletResponse.class.getName());
+        paramValues[respIndex] = response;
+        Object result = handlerMapping.getMethod().invoke(handlerMapping.getController(), paramValues);
+
+        request.setCharacterEncoding("UTF-8");
+        response.setContentType("text/html;charset=utf-8");
+        // 打印返回到调用页
+        if(result == null || result instanceof Void){
+            response.getWriter().write("没有返回值");
+            return ;
         }
-
-        // 调用方法
-        System.out.println(Arrays.toString(paramsValues));
-        method.invoke(ioc.get(beanName), paramsValues);
+        response.getWriter().write(result.toString());
     }
+
+
+
 
 
 
     /**
      * 准换数据类型
      * @param type
-     * @param value
+     * @param values
      * @return
      */
-    private Object convert(Class<?> type, String value){
-        value = value.replaceAll("\\[|\\]", "").replaceAll("\\s", ",");
+    private Object convert(Class<?> type, String[] values){
+        String value = Arrays.toString(values).replaceAll("\\[|\\]", "").replaceAll("\\s", ",");
         if(type == String.class){
            return String.valueOf(value);
         }else if(type == Integer.class || type == int.class){

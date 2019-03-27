@@ -24,31 +24,19 @@ public class DemoAction {
 
 
     @MyRequestMapping("/index")
-    public void index(HttpServletRequest request ,
+    public Object index(HttpServletRequest request ,
                       HttpServletResponse response,
                       @MyRequestParam("name") String userName){
-
         String result = demoService.selectOne(userName);
-        try {
-            // 中文乱码处理
-            request.setCharacterEncoding("UTF-8");
-            response.setContentType("text/html;charset=utf-8");
-            response.getWriter().write(result);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        return  result;
+
     }
 
     @MyRequestMapping("/add")
     public void add(HttpServletRequest request, HttpServletResponse response,
                     @MyRequestParam("a") Integer a,
                     @MyRequestParam("b") Integer b){
-        try {
-
-            response.getWriter().write(a + "+" + b + "=" + (a + b));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println((a + "+" + b + "=" + (a + b)));
     }
 
 

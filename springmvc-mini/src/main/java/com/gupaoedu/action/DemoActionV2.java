@@ -24,32 +24,19 @@ public class DemoActionV2 {
 
 
     @MyRequestMapping("/index")
-    public void index(HttpServletRequest request ,
+    public Object index(HttpServletRequest request ,
                       HttpServletResponse response,
                       @MyRequestParam("userName") String userName){
-        String result = demoService.selectOne(userName);
-        try {
-            response.getWriter().write(result);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+       return demoService.selectOne(userName);
     }
 
 
     @MyRequestMapping("/add")
-    public void add(HttpServletRequest request, HttpServletResponse response,
+    public Object add(HttpServletRequest request, HttpServletResponse response,
                     @MyRequestParam("a") double a,
                     @MyRequestParam("b") double b){
-        try {
-            response.getWriter().write(a + "+" + b + "=" + (a + b));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            return (a + "+" + b + "=" + (a + b));
     }
-
-
-
-
 
 
 }
